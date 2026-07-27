@@ -118,6 +118,8 @@ Deno.serve(async (req) => {
 
     // --- 4. Email via Resend ---
     const resendKey = Deno.env.get('RESEND_API_KEY')
+    const resendFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev'
+
     if (resendKey) {
       try {
         const emailRes = await fetch('https://api.resend.com/emails', {
@@ -127,27 +129,40 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'Saturata <noreply@saturata.it>',
+            from: `Prosintesi <${resendFrom}>`,
             to: assignedAgent.email,
             subject: `Nuovo lead ${servizio} — ${record.nome || ''} ${record.cognome || ''}`,
             html: `
-              <h2>Nuovo lead assegnato</h2>
-              <p><strong>Servizio:</strong> ${servizio}</p>
-              <p><strong>Nome:</strong> ${record.nome || 'N/D'} ${record.cognome || ''}</p>
-              <p><strong>Email:</strong> ${record.email || 'N/D'}</p>
-              <p><strong>Telefono:</strong> ${record.telefono || 'N/D'}</p>
-              <p><strong>Fonte:</strong> ${record.fonte || 'N/D'}</p>
-              <p><strong>Data:</strong> ${new Date().toLocaleString('it-IT')}</p>
-              <hr>
-              <p><small>Generato automaticamente da Saturata</small></p>
+              <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1f2937">
+                <div style="background:#3b82f6;padding:24px;border-radius:12px 12px 0 0">
+                  <h2 style="color:white;margin:0;font-size:1.3rem">🔷 Prosintesi — Nuovo Lead Assegnato</h2>
+                </div>
+                <div style="background:#f8fafc;padding:28px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">
+                  <p style="margin:0 0 16px"><strong>Servizio:</strong> <span style="color:#3b82f6;text-transform:capitalize">${servizio}</span></p>
+                  <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+                    <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b;width:120px">Nome</td><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:500">${record.nome || 'N/D'} ${record.cognome || ''}</td></tr>
+                    <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Email</td><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:500">${record.email || 'N/D'}</td></tr>
+                    <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Telefono</td><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:500">${record.telefono || 'N/D'}</td></tr>
+                    <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Fonte</td><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:500">${record.fonte || 'N/D'}</td></tr>
+                    <tr><td style="padding:8px 0;color:#64748b">Data</td><td style="padding:8px 0;font-weight:500">${new Date().toLocaleString('it-IT')}</td></tr>
+                  </table>
+                  <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px">
+                    <p style="margin:0;font-size:0.9rem;color:#1e40af">💡 Accedi alla dashboard CRM per gestire questo lead e aggiornarne lo stato.</p>
+                  </div>
+                  <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
+                  <p style="margin:0;font-size:0.8rem;color:#94a3b8">Email generata automaticamente da Prosintesi CRM · ${new Date().getFullYear()}</p>
+                </div>
+              </div>
             `,
           }),
         })
 
         if (!emailRes.ok) {
-          console.error('[RESEND] Errore invio email:', await emailRes.text())
+          const errText = await emailRes.text()
+          console.error('[RESEND] Errore invio email:', errText)
         } else {
-          console.log('[RESEND] Email inviata a', assignedAgent.email)
+          const emailData = await emailRes.json()
+          console.log('[RESEND] Email inviata a', assignedAgent.email, 'ID:', emailData.id)
         }
       } catch (e) {
         console.error('[RESEND] Eccezione:', e)
