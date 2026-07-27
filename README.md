@@ -10,124 +10,51 @@ Backend unificato per **Prosintesi** (lead) e futuro **E-Commerce Monoprodotti**
 
 ```
 prosintesi-back-end/
-├── .env.example                          # Template variabili d'ambiente
+├── .env.example
 ├── README.md
 └── supabase/
     ├── functions/
-    │   ├── process-lead/                 # ✅ ATTIVA — assegnazione lead + Resend + Brevo
-    │   │   └── index.ts
-    │   ├── receive-order/              # ⏳ STUB — carrello e-commerce (attiva con STRIPE_SECRET_KEY)
-    │   │   └── index.ts
-    │   └── stripe-webhook/             # ⏳ STUB — eventi Stripe (attiva con STRIPE_WEBHOOK_SECRET)
-    │       └── index.ts
+    │   ├── process-lead/       # ✅ ATTIVA — lead + Resend + Brevo + ARCHIVIO EMAIL
+    │   ├── receive-order/      # ⏳ STUB — e-commerce (Stripe)
+    │   └── stripe-webhook/     # ⏳ STUB — webhook Stripe
     └── migrations/
-        └── 001_create_triggers.sql       # Trigger PostgreSQL per le 6 tabelle lead
+        └── 001_create_triggers.sql
 ```
 
 ---
 
 ## 🔑 Variabili d'Ambiente
 
-Vai su **Supabase Dashboard → Project Settings → Edge Functions → Environment Variables**.
-
 | Variabile | Stato | Descrizione |
 |-----------|-------|-------------|
-| `SUPABASE_URL` | ✅ Configurata | URL progetto Supabase |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ Configurata | Chiave servizio (server-side) |
-| `RESEND_API_KEY` | ✅ Configurata | Email transazionali agli agenti |
-| `RESEND_FROM_EMAIL` | ✅ Configurata | `onboarding@resend.dev` (cambia quando verifichi dominio) |
-| `BREVO_API_KEY` | ⏳ Da aggiungere | Sync contatti marketing |
-| `STRIPE_SECRET_KEY` | ⏳ Da aggiungere | Pagamenti e-commerce |
-| `STRIPE_WEBHOOK_SECRET` | ⏳ Da aggiungere | Verifica webhook Stripe |
+| `SUPABASE_URL` | ✅ | URL progetto |
+| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Chiave servizio |
+| `RESEND_API_KEY` | ✅ | Email transazionali |
+| `RESEND_FROM_EMAIL` | ✅ | `onboarding@resend.dev` |
+| `ARCHIVE_EMAIL` | ✅ **NUOVO** | `prosintesi@gmail.com` — ogni email in BCC |
+| `BREVO_API_KEY` | ⏳ | Sync contatti marketing |
+| `STRIPE_SECRET_KEY` | ⏳ | Pagamenti e-commerce |
+| `STRIPE_WEBHOOK_SECRET` | ⏳ | Verifica webhook Stripe |
 
-**Nessuna modifica al codice necessaria.** Aggiungi solo la chiave nelle env vars e l'integrazione si attiva automaticamente.
+---
+
+## 📧 Archivio Email (NUOVO)
+
+Ogni email inviata dal sistema (lead agli agenti, notifiche, ecc.) viene automaticamente copiata in **BCC** a `ARCHIVE_EMAIL`.
+
+**Per attivarlo:** aggiungi `ARCHIVE_EMAIL=prosintesi@gmail.com` nelle env vars di Supabase.
+
+Nessuna modifica al codice necessaria.
 
 ---
 
 ## 🚀 Deploy
 
-### Deploy tutte le functions
-
 ```bash
-supabase login
-supabase link --project-ref cadgobdxuqioaghstcry
 supabase functions deploy process-lead
 supabase functions deploy receive-order
 supabase functions deploy stripe-webhook
 ```
-
-### Oppure deploy singola
-
-```bash
-supabase functions deploy process-lead
-```
-
----
-
-## ⚙️ process-lead (ATTIVA)
-
-**Flusso:**
-```
-Landing Page → receive-lead → DB (lead inserito)
-                                      │
-                                      ▼ (TRIGGER)
-                           ┌─────────────────────┐
-                           │  process-lead       │
-                           └─────────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    ▼                 ▼                 ▼
-            Assegna Agente      Email (Resend)     Sync Brevo
-```
-
-**Cosa fa:**
-1. Identifica servizio dal nome tabella
-2. Cerca agente attivo con servizio abilitato e sotto `max_lead_giorno`
-3. Assegna lead (`agente_assegnato_id` + `status = 'assegnato'`)
-4. Se `RESEND_API_KEY` → email all'agente con template HTML
-5. Se `BREVO_API_KEY` → sync contatto in Brevo
-6. Se chiavi mancanti → logga warning, continua
-
----
-
-## ⏳ receive-order (STUB — E-commerce)
-
-Si attiva automaticamente quando aggiungi `STRIPE_SECRET_KEY`.
-
-**Flusso futuro:**
-```
-Carrello → receive-order → Crea ordine (pending)
-                                ↓
-                         Stripe Checkout Session
-                                ↓
-                         Redirect cliente su Stripe
-                                ↓
-                         Pagamento → stripe-webhook → Aggiorna ordine
-```
-
----
-
-## ⏳ stripe-webhook (STUB — E-commerce)
-
-Si attiva automaticamente quando aggiungi `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET`.
-
-**Eventi futuri:**
-| Evento | Azione |
-|--------|--------|
-| `checkout.session.completed` | Ordine → `pagato` |
-| `payment_intent.payment_failed` | Ordine → `annullato` |
-| `charge.refunded` | Ordine → `rimborsato` |
-
----
-
-## 🧪 Test
-
-```sql
-INSERT INTO lead_immobiliare (nome, cognome, email, telefono, privacy, marketing)
-VALUES ('Test', 'Resend', 'test@example.com', '3331234567', true, false);
-```
-
-Poi controlla i log di `process-lead` su Supabase Dashboard.
 
 ---
 

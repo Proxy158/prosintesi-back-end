@@ -119,20 +119,15 @@ Deno.serve(async (req) => {
     // --- 4. Email via Resend ---
     const resendKey = Deno.env.get('RESEND_API_KEY')
     const resendFrom = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev'
+    const archiveEmail = Deno.env.get('ARCHIVE_EMAIL') || ''
 
     if (resendKey) {
       try {
-        const emailRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${resendKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: `Prosintesi <${resendFrom}>`,
-            to: assignedAgent.email,
-            subject: `Nuovo lead ${servizio} — ${record.nome || ''} ${record.cognome || ''}`,
-            html: `
+        const emailPayload: any = {
+          from: `Prosintesi <${resendFrom}>`,
+          to: assignedAgent.email,
+          subject: `[ARCHIVIO] Nuovo lead ${servizio} — ${record.nome || ''} ${record.cognome || ''}`,
+          html: `
               <div style="font-family:Inter,system-ui,sans-serif;max-width:600px;margin:0 auto;color:#1f2937">
                 <div style="background:#3b82f6;padding:24px;border-radius:12px 12px 0 0">
                   <h2 style="color:white;margin:0;font-size:1.3rem">🔷 Prosintesi — Nuovo Lead Assegnato</h2>
@@ -154,7 +149,20 @@ Deno.serve(async (req) => {
                 </div>
               </div>
             `,
-          }),
+        }
+
+        // --- ARCHIVIO: invia copia nascosta a prosintesi@gmail.com ---
+        if (archiveEmail) {
+          emailPayload.bcc = [archiveEmail]
+        }
+
+        const emailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(emailPayload),
         })
 
         if (!emailRes.ok) {
@@ -163,6 +171,9 @@ Deno.serve(async (req) => {
         } else {
           const emailData = await emailRes.json()
           console.log('[RESEND] Email inviata a', assignedAgent.email, 'ID:', emailData.id)
+          if (archiveEmail) {
+            console.log('[ARCHIVIO] Copia archiviata su', archiveEmail)
+          }
         }
       } catch (e) {
         console.error('[RESEND] Eccezione:', e)

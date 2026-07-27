@@ -1,8 +1,3 @@
--- ============================================
--- Saturata — Trigger PostgreSQL per assegnazione lead
--- Eseguire in Supabase SQL Editor (New query → Run)
--- ============================================
-
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
 CREATE OR REPLACE FUNCTION public.trigger_process_lead()
@@ -25,43 +20,19 @@ BEGIN
       'record', row_to_json(NEW)
     )
   ) INTO request_id;
-
   RETURN NEW;
 END;
 $$;
 
 DROP TRIGGER IF EXISTS trg_process_lead_immobiliare ON public.lead_immobiliare;
-CREATE TRIGGER trg_process_lead_immobiliare
-  AFTER INSERT ON public.lead_immobiliare
-  FOR EACH ROW
-  EXECUTE FUNCTION public.trigger_process_lead();
-
+CREATE TRIGGER trg_process_lead_immobiliare AFTER INSERT ON public.lead_immobiliare FOR EACH ROW EXECUTE FUNCTION public.trigger_process_lead();
 DROP TRIGGER IF EXISTS trg_process_lead_fotovoltaico ON public.lead_fotovoltaico;
-CREATE TRIGGER trg_process_lead_fotovoltaico
-  AFTER INSERT ON public.lead_fotovoltaico
-  FOR EACH ROW
-  EXECUTE FUNCTION public.trigger_process_lead();
-
+CREATE TRIGGER trg_process_lead_fotovoltaico AFTER INSERT ON public.lead_fotovoltaico FOR EACH ROW EXECUTE FUNCTION public.trigger_process_lead();
 DROP TRIGGER IF EXISTS trg_process_lead_cessione_quinto ON public.lead_cessione_quinto;
-CREATE TRIGGER trg_process_lead_cessione_quinto
-  AFTER INSERT ON public.lead_cessione_quinto
-  FOR EACH ROW
-  EXECUTE FUNCTION public.trigger_process_lead();
-
+CREATE TRIGGER trg_process_lead_cessione_quinto AFTER INSERT ON public.lead_cessione_quinto FOR EACH ROW EXECUTE FUNCTION public.trigger_process_lead();
 DROP TRIGGER IF EXISTS trg_process_lead_mutui ON public.lead_mutui;
-CREATE TRIGGER trg_process_lead_mutui
-  AFTER INSERT ON public.lead_mutui
-  FOR EACH ROW
-  EXECUTE FUNCTION public.trigger_process_lead();
-
+CREATE TRIGGER trg_process_lead_mutui AFTER INSERT ON public.lead_mutui FOR EACH ROW EXECUTE FUNCTION public.trigger_process_lead();
 DROP TRIGGER IF EXISTS trg_process_lead_climatizzazione ON public.lead_climatizzazione;
-CREATE TRIGGER trg_process_lead_climatizzazione
-  AFTER INSERT ON public.lead_climatizzazione
-  FOR EACH ROW
-  EXECUTE FUNCTION public.trigger_process_lead();
-
+CREATE TRIGGER trg_process_lead_climatizzazione AFTER INSERT ON public.lead_climatizzazione FOR EACH ROW EXECUTE FUNCTION public.trigger_process_lead();
 DROP TRIGGER IF EXISTS trg_process_lead_efficienza_energetica ON public.lead_efficienza_energetica;
-CREATE TRIGGER trg_process_lead_efficienza_energetica
-  AFTER INSERT ON public.lead_efficienza_energetica
-  FOR EACH ROW
-  EXECUTE FUNCTION public.trigger_process_lead();
+CREATE TRIGGER trg_process_lead_efficienza_energetica AFTER INSERT ON public.lead_efficienza_energetica FOR EACH ROW EXECUTE FUNCTION public.trigger_process_lead();
